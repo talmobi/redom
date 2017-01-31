@@ -4,7 +4,25 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 var text = function (str) { return doc.createTextNode(str); };
 
+var willTimeout = [];
+
+var needTimeout = function (handler) {
+  if (!willTimeout.length) {
+    setTimeout(function () {
+      for (var i = 0; i < willTimeout.length; i++) {
+        willTimeout[i]();
+      }
+      willTimeout = [];
+    }, 0);
+  }
+  willTimeout.push(handler);
+};
+
 function mount (parent, child, before) {
+  _mount(parent, child, before);
+}
+
+function _mount (parent, child, before, innerCall) {
   var parentEl = parent.el || parent;
   var childEl = child.el || child;
 
@@ -31,10 +49,10 @@ function mount (parent, child, before) {
     parentEl.appendChild(childEl);
   }
   if (child.isMounted) {
-    child.remounted && child.remounted();
+    child.remounted && needTimeout(function () { return child.remounted(); });
   } else {
     child.isMounted = true;
-    child.mounted && child.mounted();
+    child.mounted && needTimeout(function () { return child.mounted(); });
   }
 
   return child;
@@ -54,7 +72,7 @@ function unmount (parent, child) {
   parentEl.removeChild(childEl);
 
   child.isMounted = false;
-  child.unmounted && child.unmounted();
+  child.unmounted && needTimeout(function () { return child.unmounted(); });
 
   return child;
 }
@@ -374,12 +392,12 @@ svg.extend = function (query) {
   return svg.bind(this, clone);
 };
 
+exports.mount = mount;
+exports.unmount = unmount;
 exports.el = el;
 exports.html = html;
 exports.list = list;
 exports.List = List;
-exports.mount = mount;
-exports.unmount = unmount;
 exports.router = router;
 exports.Router = Router;
 exports.setAttr = setAttr;

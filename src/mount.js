@@ -1,6 +1,24 @@
 import { isList } from './util';
 
+let willTimeout = [];
+
+const needTimeout = handler => {
+  if (!willTimeout.length) {
+    setTimeout(() => {
+      for (let i = 0; i < willTimeout.length; i++) {
+        willTimeout[i]();
+      }
+      willTimeout = [];
+    }, 0);
+  }
+  willTimeout.push(handler);
+};
+
 export function mount (parent, child, before) {
+  _mount(parent, child, before);
+}
+
+export function _mount (parent, child, before, innerCall) {
   const parentEl = parent.el || parent;
   let childEl = child.el || child;
 
@@ -27,10 +45,10 @@ export function mount (parent, child, before) {
     parentEl.appendChild(childEl);
   }
   if (child.isMounted) {
-    child.remounted && child.remounted();
+    child.remounted && needTimeout(() => { child.remounted(); });
   } else {
     child.isMounted = true;
-    child.mounted && child.mounted();
+    child.mounted && needTimeout(() => { child.mounted(); });
   }
 
   return child;
@@ -50,7 +68,7 @@ export function unmount (parent, child) {
   parentEl.removeChild(childEl);
 
   child.isMounted = false;
-  child.unmounted && child.unmounted();
+  child.unmounted && needTimeout(() => { child.unmounted(); });
 
   return child;
 }

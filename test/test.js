@@ -151,14 +151,16 @@ module.exports = function (redom) {
       mount(document.body, item);
       mount(document.body, item.el); // test view lookup (__redom_view)
       unmount(document.body, item);
-      t.deepEqual(eventsFired, {
-        mount: true,
-        mounted: true,
-        remount: true,
-        remounted: true,
-        unmount: true,
-        unmounted: true
-      });
+      setTimeout(() => {
+        t.deepEqual(eventsFired, {
+          mount: true,
+          mounted: true,
+          remount: true,
+          remounted: true,
+          unmount: true,
+          unmounted: true
+        });
+      }, 0);
     });
     t.test('setChildren', function (t) {
       t.plan(2);

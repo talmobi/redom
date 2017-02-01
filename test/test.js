@@ -509,8 +509,12 @@ module.exports = function (redom) {
       return { el, mount, mounted, unmount, unmounted };
     }
 
+    function Apex () {
+      return Base('Apex');
+    }
+
     function Leaf () {
-      return Base('Leaf');
+      return Base('Leaf', Apex());
     }
 
     function Branch () {
@@ -528,12 +532,16 @@ module.exports = function (redom) {
       'Tree mount: undefined',
       'Branch mount: undefined',
       'Leaf mount: undefined',
+      'Apex mount: undefined',
       'Tree mounted: object',
       'Branch mounted: object',
       'Leaf mounted: object',
-      'Leaf unmount: object', // reversed order when unmounting
+      'Apex mounted: object',
+      'Apex unmount: object', // reversed order when unmounting
+      'Leaf unmount: object',
       'Branch unmount: object',
       'Tree unmount: object',
+      'Apex unmounted: undefined',
       'Leaf unmounted: undefined',
       'Branch unmounted: undefined',
       'Tree unmounted: undefined'

@@ -143,11 +143,11 @@ function notifyDown (child, eventName, originalChild, reversed) {
     var view = traverse.__redom_view || traverse;
     var event = view[eventName];
 
-    reversed && notifyDown(traverse, eventName, originalChild || child);
+    reversed && notifyDown(traverse, eventName, originalChild || child, reversed);
 
     event && event.call(view, originalChild || child);
 
-    !reversed && notifyDown(traverse, eventName, originalChild || child);
+    !reversed && notifyDown(traverse, eventName, originalChild || child, reversed);
 
     traverse = next;
   }

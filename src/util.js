@@ -1,5 +1,5 @@
 import { text } from './text';
-import { mount } from './mount';
+import { _mount } from './mount';
 import { setAttr } from './setattr';
 
 export function parseArguments (element, args) {
@@ -16,12 +16,31 @@ export function parseArguments (element, args) {
     } else if (isString(arg) || isNumber(arg)) {
       element.appendChild(text(arg));
     } else if (isNode(arg) || isNode(arg.el) || isList(arg.el)) {
-      mount(element, arg);
+      _mount(element, arg, undefined, true);
     } else if (arg.length) {
       parseArguments(element, arg);
     } else if (typeof arg === 'object') {
       setAttr(element, arg);
     }
+  }
+}
+
+export function notifyDown (child, eventName, originalChild, reversed) {
+  var childEl = child.el || child;
+  var traverse = childEl.firstChild;
+
+  while (traverse) {
+    var next = traverse.nextSibling;
+    var view = traverse.__redom_view || traverse;
+    var event = view[eventName];
+
+    reversed && notifyDown(traverse, eventName, originalChild || child);
+
+    event && event.call(view, originalChild || child);
+
+    !reversed && notifyDown(traverse, eventName, originalChild || child);
+
+    traverse = next;
   }
 }
 

@@ -5,7 +5,7 @@ var SVGElement = window.SVGElement;
 var CustomEvent = window.CustomEvent;
 
 module.exports = function (redom) {
-  var { el, list, router, svg, mount, unmount, setChildren, setAttr, setStyle } = redom;
+  var { el, list, router, svg, mount, unmount, setChildren, setAttr, setStyle, html } = redom;
 
   test('exports utils', function (t) {
     t.plan(2);
@@ -78,6 +78,17 @@ module.exports = function (redom) {
       }
       var app = el('app',
         new Test()
+      );
+      t.equals(app.outerHTML, '<app><test></test></app>');
+    });
+    t.test('child views (using html)', function (t) {
+      t.plan(1);
+      function Test () {
+        var el = html('test');
+        return { el };
+      }
+      var app = el('app',
+        Test()
       );
       t.equals(app.outerHTML, '<app><test></test></app>');
     });
@@ -471,5 +482,61 @@ module.exports = function (redom) {
     t.equals(_router.el.outerHTML, '<div class="test"><a>1</a></div>');
     _router.update('b', 2);
     t.equals(_router.el.outerHTML, '<div class="test"><b>2</b></div>');
+  });
+  test('notifyDown lifecycle events', function (t) {
+    t.plan(1);
+    var logs = [];
+
+    function Base (name, content) {
+      var el = html('', content);
+
+      function mount () {
+        logs.push(name + ' mount: ' + (typeof el.getClientRects()[0]));
+      }
+
+      function mounted () {
+        logs.push(name + ' mounted: ' + (typeof el.getClientRects()[0]));
+      }
+
+      function unmount () {
+        logs.push(name + ' unmount: ' + (typeof el.getClientRects()[0]));
+      }
+
+      function unmounted () {
+        logs.push(name + ' unmounted: ' + (typeof el.getClientRects()[0]));
+      }
+
+      return { el, mount, mounted, unmount, unmounted };
+    }
+
+    function Leaf () {
+      return Base('Leaf');
+    }
+
+    function Branch () {
+      return Base('Branch', Leaf());
+    }
+
+    function Tree () {
+      return Base('Tree', Branch());
+    }
+
+    var tree = Tree();
+    mount(document.body, tree);
+    unmount(document.body, tree);
+    t.deepEqual(logs, [
+      'Tree mount: undefined',
+      'Branch mount: undefined',
+      'Leaf mount: undefined',
+      'Tree mounted: object',
+      'Branch mounted: object',
+      'Leaf mounted: object',
+      'Leaf unmount: object', // reversed order when unmounting
+      'Branch unmount: object',
+      'Tree unmount: object',
+      'Leaf unmounted: undefined',
+      'Branch unmounted: undefined',
+      'Tree unmounted: undefined'
+    ]);
   });
 };

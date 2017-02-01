@@ -2,3 +2,6 @@
 node_modules
 npm-debug.log
 bench/build.js
+
+" vim temp files
+*.sw?

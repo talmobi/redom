@@ -6,7 +6,7 @@
 
 var text = function (str) { return doc.createTextNode(str); };
 
-function mount (parent, child, before) {
+function _mount (parent, child, before, innerCall) {
   var parentEl = parent.el || parent;
   var childEl = child.el || child;
 
@@ -22,24 +22,39 @@ function mount (parent, child, before) {
   if (child !== childEl) {
     childEl.__redom_view = child;
   }
-  if (child.isMounted) {
-    child.remount && child.remount();
-  } else {
-    child.mount && child.mount();
+
+  if (!innerCall) {
+    if (child.isMounted) {
+      child.remount && child.remount();
+      notifyDown(child, 'remount', parent);
+    } else {
+      child.mount && child.mount();
+      notifyDown(child, 'mount', parent);
+    }
   }
+
   if (before) {
     parentEl.insertBefore(childEl, before.el || before);
   } else {
     parentEl.appendChild(childEl);
   }
-  if (child.isMounted) {
-    child.remounted && child.remounted();
-  } else {
-    child.isMounted = true;
-    child.mounted && child.mounted();
+
+  if (!innerCall) {
+    if (child.isMounted) {
+      child.remounted && child.remounted();
+      notifyDown(child, 'remounted', parent);
+    } else {
+      child.isMounted = true;
+      child.mounted && child.mounted();
+      notifyDown(child, 'mounted', parent);
+    }
   }
 
   return child;
+}
+
+function mount (parent, child, before) {
+  return _mount(parent, child, before);
 }
 
 function unmount (parent, child) {
@@ -51,10 +66,12 @@ function unmount (parent, child) {
     child = childEl.__redom_view;
   }
 
+  notifyDown(child, 'unmount', parent, true); // true = reversed
   child.unmount && child.unmount();
 
   parentEl.removeChild(childEl);
 
+  notifyDown(child, 'unmounted', parent, true); // true = reversed
   child.isMounted = false;
   child.unmounted && child.unmounted();
 
@@ -110,12 +127,31 @@ function parseArguments (element, args) {
     } else if (isString(arg) || isNumber(arg)) {
       element.appendChild(text(arg));
     } else if (isNode(arg) || isNode(arg.el) || isList(arg.el)) {
-      mount(element, arg);
+      _mount(element, arg, undefined, true);
     } else if (arg.length) {
       parseArguments(element, arg);
     } else if (typeof arg === 'object') {
       setAttr(element, arg);
     }
+  }
+}
+
+function notifyDown (child, eventName, originalChild, reversed) {
+  var childEl = child.el || child;
+  var traverse = childEl.firstChild;
+
+  while (traverse) {
+    var next = traverse.nextSibling;
+    var view = traverse.__redom_view || traverse;
+    var event = view[eventName];
+
+    reversed && notifyDown(traverse, eventName, originalChild || child);
+
+    event && event.call(view, originalChild || child);
+
+    !reversed && notifyDown(traverse, eventName, originalChild || child);
+
+    traverse = next;
   }
 }
 
@@ -380,6 +416,7 @@ exports.el = el;
 exports.html = html;
 exports.list = list;
 exports.List = List;
+exports._mount = _mount;
 exports.mount = mount;
 exports.unmount = unmount;
 exports.router = router;
